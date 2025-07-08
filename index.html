@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Meta com Juros Compostos</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cleave.js/1.6.0/cleave.min.js"></script>
+    <style>
+      body {
+        font-family: "Segoe UI", sans-serif;
+        background: #f0f2f5;
+        margin: 0;
+        padding: 20px;
+      }
+      .container {
+        max-width: 440px;
+        margin: auto;
+        background: #fff;
+        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        text-align: center;
+        color: #1976d2;
+      }
+      label {
+        margin-top: 15px;
+        font-weight: 500;
+        display: block;
+      }
+      input {
+        width: 100%;
+        padding: 12px;
+        margin-top: 6px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 16px;
+        box-sizing: border-box;
+      }
+      button {
+        width: 100%;
+        padding: 15px;
+        margin-top: 20px;
+        background-color: #1976d2;
+        color: white;
+        font-size: 16px;
+        font-weight: bold;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #0d47a1;
+      }
+      #resultado,
+      #log,
+      #faltam {
+        margin-top: 20px;
+        font-size: 16px;
+        color: #2e7d32;
+      }
+      ul {
+        list-style: none;
+        padding-left: 0;
+      }
+      li {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin: 6px 0;
+        padding: 6px 10px;
+        background: #f9f9f9;
+        border-radius: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Meta Financeira</h1>
+
+      <label for="atual">Valor Atual (R$):</label>
+      <input type="text" id="atual" class="money" placeholder="100.000" />
+
+      <label for="meta">Meta Final (R$):</label>
+      <input type="text" id="meta" class="money" placeholder="200.000" />
+
+      <label for="juros">Juros Mensal (%):</label>
+      <input type="number" id="juros" placeholder="Ex: 1.0" />
+
+      <label for="meses">Período (em meses):</label>
+      <input type="number" id="meses" placeholder="Ex: 12" />
+
+      <button onclick="calcular()">Calcular Parcelas</button>
+
+      <div id="resultado"></div>
+      <div id="faltam"></div>
+
+      <ul id="parcelasList"></ul>
+
+      <button onclick="registrarDeposito()">Registrar Depósito</button>
+      <button onclick="resetar()">Resetar</button>
+
+      <div id="log"></div>
+    </div>
+
+    <script>
+      let parcelas = [];
+      let saldo = 0;
+      let juros = 0;
+      let meta = 0;
+      let meses = 0;
+      let mesAtual = 0;
+
+      function parseMoney(str) {
+        return parseFloat(str.replaceAll(".", "").replace(",", ".")) || 0;
+      }
+
+      function formatMoney(val) {
+        return val.toLocaleString("pt-BR", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
+      }
+
+      function calcular() {
+        saldo = parseMoney(document.getElementById("atual").value);
+        meta = parseMoney(document.getElementById("meta").value);
+        juros = (parseFloat(document.getElementById("juros").value) || 0) / 100;
+        meses = parseInt(document.getElementById("meses").value) || 1;
+        mesAtual = 0;
+
+        let fator = Math.pow(1 + juros, meses);
+        let FV_PV = saldo * fator;
+        let pmt = ((meta - FV_PV) * juros) / (fator - 1);
+
+        parcelas = Array(meses).fill(pmt);
+
+        localStorage.setItem("parcelas", JSON.stringify(parcelas));
+        localStorage.setItem("saldo", saldo);
+        localStorage.setItem("juros", juros);
+        localStorage.setItem("meta", meta);
+        localStorage.setItem("mesAtual", 0);
+
+        mostrarParcelas();
+      }
+
+      function mostrarParcelas() {
+        const list = document.getElementById("parcelasList");
+        list.innerHTML = "";
+        const p = JSON.parse(localStorage.getItem("parcelas") || "[]");
+        const pagos = JSON.parse(localStorage.getItem("pagos") || "{}");
+        let totalRestante = 0;
+
+        for (let i = 0; i < p.length; i++) {
+          if (!pagos[i]) totalRestante += p[i];
+          const li = document.createElement("li");
+          li.innerHTML = `
+      <span>Mês ${i + 1}: R$ ${formatMoney(p[i])}</span>
+      <input type="checkbox" ${
+        pagos[i] ? "checked" : ""
+      } onchange="confirmarPagamento(${i})" />
+    `;
+          list.appendChild(li);
+        }
+
+        document.getElementById("resultado").innerText =
+          "Parcela fixa: R$ " + formatMoney(p[0] || 0);
+        document.getElementById("faltam").innerText =
+          "Total restante: R$ " + formatMoney(totalRestante);
+      }
+
+      function confirmarPagamento(index) {
+        let pagos = JSON.parse(localStorage.getItem("pagos") || "{}");
+        pagos[index] = true;
+        localStorage.setItem("pagos", JSON.stringify(pagos));
+        mostrarParcelas();
+      }
+
+      function registrarDeposito() {
+        let valor =
+          parseFloat(
+            prompt("Quanto você depositou este mês?").replace(",", ".")
+          ) || 0;
+        let saldo = parseFloat(localStorage.getItem("saldo") || "0");
+        saldo += valor;
+        localStorage.setItem("saldo", saldo);
+        document.getElementById("log").innerText =
+          "Depósito registrado: R$ " + formatMoney(valor);
+        mostrarParcelas();
+      }
+
+      function resetar() {
+        localStorage.clear();
+        parcelas = [];
+        document.getElementById("parcelasList").innerHTML = "";
+        document.getElementById("resultado").innerText = "";
+        document.getElementById("faltam").innerText = "";
+        document.getElementById("log").innerText = "Resetado com sucesso.";
+      }
+
+      // Aplicar máscara
+      window.onload = function () {
+        document.querySelectorAll(".money").forEach((input) => {
+          new Cleave(input, {
+            numeral: true,
+            numeralThousandsGroupStyle: "thousand",
+            delimiter: ".",
+            numeralDecimalMark: ",",
+            numeralDecimalScale: 2,
+          });
+        });
+        mostrarParcelas();
+      };
+    </script>
+  </body>
+</html>
