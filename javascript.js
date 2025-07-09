@@ -23,6 +23,13 @@ function calcular() {
   meta = parseMoney(document.getElementById("meta").value);
   juros = (parseFloat(document.getElementById("juros").value) || 0) / 100;
   meses = parseInt(document.getElementById("meses").value) || 1;
+
+  if (saldo == 0 || meta == 0 || juros == 0) {
+    alertaValoresVazios();
+    return;
+  }
+
+  document.querySelector(".parcelas").classList.remove("d-none");
   mesAtual = 0;
   parcelasPagas = [];
   valoresPagos = [];
@@ -38,6 +45,10 @@ function calcular() {
   atualizarFaltam();
 }
 
+function alertaValoresVazios() {
+    // alert('Preencha todos os campos')
+}
+
 function exibirParcelas() {
   const lista = document.getElementById("parcelasList");
   lista.innerHTML = "";
@@ -48,9 +59,9 @@ function exibirParcelas() {
       <span>Parcela ${index + 1}: R$ 
         <input type="text" id="valor-${index}" value="${formatMoney(
       valor
-    )}" onchange="atualizarParcela(${index})" style="width: 100px;" />
+    )}" onchange="atualizarParcela(${index})" />
       </span>
-      <input type="checkbox" onchange="marcarComoPaga(${index})" ${
+      <input id="checkbox" class="inputCheck" type="checkbox" onchange="marcarComoPaga(${index})" ${
       parcelasPagas[index] ? "checked disabled" : ""
     } />
     `;
@@ -108,6 +119,7 @@ function resetar() {
   document.getElementById("faltam").innerHTML = "";
   document.getElementById("log").innerHTML = "";
   saldo = 0;
+  document.querySelector(".parcelas").classList.add("d-none");
 }
 
 window.onload = function () {
@@ -120,5 +132,5 @@ window.onload = function () {
       numeralDecimalScale: 2,
     });
   });
-  mostrarParcelas();
+  //   mostrarParcelas();
 };

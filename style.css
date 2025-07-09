@@ -1,0 +1,130 @@
+body {
+  font-family: "Segoe UI", sans-serif;
+  background: #f0f2f5;
+  margin: 0;
+  padding: 20px;
+}
+
+.container {
+  max-width: 1000px;
+  margin: auto;
+  background: #fff;
+  padding: 25px;
+  border-radius: 10px;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+  text-align: center;
+  color: #1976d2;
+  font-size: 24px;
+  margin-bottom: 30px;
+}
+
+.layout {
+  display: flex;
+  /* gap: 30px; */
+  flex-wrap: wrap;
+}
+
+.formulario {
+  flex: 1;
+  min-width: 300px;
+}
+
+.parcelas {
+  flex: 1;
+  min-width: 300px;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+label {
+  margin-top: 15px;
+  font-weight: 500;
+  display: block;
+}
+
+input {
+  width: 100%;
+  padding: 6px;
+  margin-top: 6px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+button {
+  width: 100%;
+  padding: 15px;
+  margin-top: 20px;
+  background-color: #1976d2;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #0d47a1;
+}
+
+#resultado,
+#log,
+#faltam {
+  margin-top: 20px;
+  font-size: 16px;
+  color: #2e7d32;
+}
+
+ul {
+  list-style: none;
+  padding-left: 0;
+  margin-top: 20px;
+}
+
+li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin: 6px 0;
+  padding: 6px 10px;
+  background: #f9f9f9;
+  border-radius: 6px;
+  gap: 10px;
+}
+
+li span {
+  flex: 1;
+  min-width: 180px;
+}
+
+li input[type="text"] {
+  width: 100px;
+}
+
+li input[type="checkbox"] {
+  transform: scale(1.2);
+}
+
+@media (max-width: 768px) {
+  .layout {
+    flex-direction: column;
+  }
+
+  .parcelas {
+    max-height: none;
+  }
+}
+
+.d-none {
+  display: none;
+}
+
+.inputCheck{
+    width: 20px;
+}
