@@ -73,7 +73,6 @@ function marcarComoPaga(index) {
   parcelasPagas[index] = true;
   valoresPagos[index] = valorPago;
 
-  // Recalcula parcelas restantes
   const restantes = parcelas.slice(index + 1).length;
   if (restantes > 0) {
     const FV = saldo * Math.pow(1 + juros, restantes);
@@ -100,31 +99,6 @@ function atualizarFaltam() {
   )}</strong>`;
 }
 
-// function registrarDeposito() {
-//   const valor = prompt("Informe o valor depositado este mês:");
-//   const val = parseMoney(valor || "0");
-//   if (val <= 0) return;
-
-//   saldo = saldo * (1 + juros) + val;
-//   parcelasPagas[mesAtual] = true;
-//   valoresPagos[mesAtual] = val;
-
-//   // Atualiza parcelas seguintes
-//   const restantes = parcelas.slice(mesAtual + 1).length;
-//   if (restantes > 0) {
-//     const FV = saldo * Math.pow(1 + juros, restantes);
-//     const novoRestante = meta - FV;
-//     const novoPMT = (novoRestante * juros) / (Math.pow(1 + juros, restantes) - 1);
-//     for (let i = mesAtual + 1; i < parcelas.length; i++) {
-//       parcelas[i] = novoPMT;
-//     }
-//   }
-
-//   mesAtual++;
-//   exibirParcelas();
-//   atualizarFaltam();
-// }
-
 function resetar() {
   parcelas = [];
   parcelasPagas = [];
@@ -136,7 +110,6 @@ function resetar() {
   saldo = 0;
 }
 
-// Aplicar máscara
 window.onload = function () {
   document.querySelectorAll(".money").forEach((input) => {
     new Cleave(input, {
