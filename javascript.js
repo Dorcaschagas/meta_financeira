@@ -4,6 +4,8 @@ let juros = 0;
 let meta = 0;
 let meses = 0;
 let mesAtual = 0;
+let parcelasPagas = [];
+let valoresPagos = [];
 
 function parseMoney(str) {
   return parseFloat(str.replaceAll(".", "").replace(",", ".")) || 0;
@@ -22,134 +24,116 @@ function calcular() {
   juros = (parseFloat(document.getElementById("juros").value) || 0) / 100;
   meses = parseInt(document.getElementById("meses").value) || 1;
   mesAtual = 0;
+  parcelasPagas = [];
+  valoresPagos = [];
 
-  let fator = Math.pow(1 + juros, meses);
-  let FV_PV = saldo * fator;
-  let pmt = ((meta - FV_PV) * juros) / (fator - 1);
+  const fator = Math.pow(1 + juros, meses);
+  const FV_PV = saldo * fator;
+  const restante = meta - FV_PV;
 
-  parcelas = Array(meses).fill(pmt);
+  const pmt = (restante * juros) / (fator - 1);
+  parcelas = Array.from({ length: meses }, () => pmt);
 
-  localStorage.setItem("parcelas", JSON.stringify(parcelas));
-  localStorage.setItem("saldo", saldo);
-  localStorage.setItem("juros", juros);
-  localStorage.setItem("meta", meta);
-  localStorage.setItem("mesAtual", 0);
-
-  mostrarParcelas();
+  exibirParcelas();
+  atualizarFaltam();
 }
 
-function mostrarParcelas() {
-  const list = document.getElementById("parcelasList");
-  list.innerHTML = "";
-  const parcelas = JSON.parse(localStorage.getItem("parcelas") || "[]");
+function exibirParcelas() {
+  const lista = document.getElementById("parcelasList");
+  lista.innerHTML = "";
 
-  const pagos = JSON.parse(localStorage.getItem("pagos") || "{}");
-  const valoresEditados = JSON.parse(
-    localStorage.getItem("valoresEditados") || "{}"
-  );
-
-  console.log("valores editados", valoresEditados);
-  for (let i = 0; i < parcelas.length; i++) {
-    const valor =
-      valoresEditados[i] !== undefined ? valoresEditados[i] : parcelas[i];
+  parcelas.forEach((valor, index) => {
     const li = document.createElement("li");
     li.innerHTML = `
-        <span>Mês ${i + 1}</span>
-        <input type="text" id="valor_${i}" value="${formatMoney(
+      <span>Parcela ${index + 1}: R$ 
+        <input type="text" id="valor-${index}" value="${formatMoney(
       valor
-    )}" style="width:90px;" />
-        <input type="checkbox" id="check_${i}" ${
-      pagos[i] ? "checked" : ""
-    } onchange="confirmarPagamento(${i})" />
-      `;
-    list.appendChild(li);
-  }
-
-  // Espera o DOM renderizar os inputs antes de calcular o total real
-  setTimeout(() => {
-    let totalRestante = 0;
-    for (let i = 0; i < parcelas.length; i++) {
-      const input = document.getElementById(`valor_${i}`);
-      let valor = parcelas[i];
-      const valorInput = parseMoney(input.value);
-
-      totalRestante += valor;
-      if (pagos[i]) {
-        totalRestante -= valorInput ;
-      }
-    }
-    console.log("totalRestante", totalRestante);
-    document.getElementById("resultado").innerText =
-      "Parcela fixa: R$ " + formatMoney(parcelas[0] || 0);
-    document.getElementById("faltam").innerText =
-      "Total restante: R$ " + formatMoney(totalRestante);
-  }, 100);
+    )}" onchange="atualizarParcela(${index})" style="width: 100px;" />
+      </span>
+      <input type="checkbox" onchange="marcarComoPaga(${index})" ${
+      parcelasPagas[index] ? "checked disabled" : ""
+    } />
+    `;
+    lista.appendChild(li);
+  });
 }
 
-function confirmarPagamento(index) {
-  const input = document.getElementById(`valor_${index}`);
-  const check = document.getElementById(`check_${index}`);
-  const valorPago = parseMoney(input.value);
+function atualizarParcela(index) {
+  const valorInput = document.getElementById(`valor-${index}`);
+  const novoValor = parseMoney(valorInput.value);
+  parcelas[index] = novoValor;
+  atualizarFaltam();
+}
 
-  // salva valor editado SEM alterar o array de parcelas
-  let valoresEditados = JSON.parse(
-    localStorage.getItem("valoresEditados") || "{}"
+function marcarComoPaga(index) {
+  if (parcelasPagas[index]) return;
+
+  const valorPago = parseMoney(document.getElementById(`valor-${index}`).value);
+  saldo = saldo * (1 + juros) + valorPago;
+  parcelasPagas[index] = true;
+  valoresPagos[index] = valorPago;
+
+  // Recalcula parcelas restantes
+  const restantes = parcelas.slice(index + 1).length;
+  if (restantes > 0) {
+    const FV = saldo * Math.pow(1 + juros, restantes);
+    const novoRestante = meta - FV;
+    const novoPMT =
+      (novoRestante * juros) / (Math.pow(1 + juros, restantes) - 1);
+    for (let i = index + 1; i < parcelas.length; i++) {
+      parcelas[i] = novoPMT;
+    }
+  }
+
+  exibirParcelas();
+  atualizarFaltam();
+}
+
+function atualizarFaltam() {
+  const faltam = parcelas.reduce(
+    (acc, val, i) => (parcelasPagas[i] ? acc : acc + val),
+    0
   );
-  valoresEditados[index] = valorPago;
-  localStorage.setItem("valoresEditados", JSON.stringify(valoresEditados));
-  
-  // marca como pago
-  let pagos = JSON.parse(localStorage.getItem("pagos") || "{}");
-  pagos[index] = check.checked;
-  localStorage.setItem("pagos", JSON.stringify(pagos));
-
-  // soma ao saldo
-  let saldo = parseFloat(localStorage.getItem("saldo") || "0");
-  saldo += valorPago;
-  localStorage.setItem("saldo", saldo);
-
-  // rescalcula parcelas restatante caso tenha marcado
-  if(check.checked){
-    let parcelas = JSON.parse(localStorage.getItem("parcelas") || "[]");
-    let juros = parseFloat(localStorage.getItem("juros") || "0");
-    let meta = parseFloat(localStorage.getItem("meta") || "0");
-
-    let mesesRestantes = parcelas.length - (index + 1);
-    console.log(mesesRestantes)
-    if(mesesRestantes > 0 ){
-        let fator = Math.pow(1 + juros, mesesRestantes);
-        let FV_PV = saldo * fator;
-        let novaParcela = ((meta - FV_PV) * juros) / (fator - 1);
-        let novasParcelas = parcelas.map((p, i) =>
-            i <= index ? p : novaParcela
-    );
-    console.log(novasParcelas)
-    localStorage.setItem("parcelas", JSON.stringify(novasParcelas));
-    }
-  }
-
-  mostrarParcelas();
+  const div = document.getElementById("faltam");
+  div.innerHTML = `Total restante previsto: <strong>R$ ${formatMoney(
+    faltam
+  )}</strong>`;
 }
 
-function registrarDeposito() {
-  let valor =
-    parseFloat(prompt("Quanto você depositou este mês?").replace(",", ".")) ||
-    0;
-  let saldo = parseFloat(localStorage.getItem("saldo") || "0");
-  saldo += valor;
-  localStorage.setItem("saldo", saldo);
-  document.getElementById("log").innerText =
-    "Depósito registrado: R$ " + formatMoney(valor);
-  mostrarParcelas();
-}
+// function registrarDeposito() {
+//   const valor = prompt("Informe o valor depositado este mês:");
+//   const val = parseMoney(valor || "0");
+//   if (val <= 0) return;
+
+//   saldo = saldo * (1 + juros) + val;
+//   parcelasPagas[mesAtual] = true;
+//   valoresPagos[mesAtual] = val;
+
+//   // Atualiza parcelas seguintes
+//   const restantes = parcelas.slice(mesAtual + 1).length;
+//   if (restantes > 0) {
+//     const FV = saldo * Math.pow(1 + juros, restantes);
+//     const novoRestante = meta - FV;
+//     const novoPMT = (novoRestante * juros) / (Math.pow(1 + juros, restantes) - 1);
+//     for (let i = mesAtual + 1; i < parcelas.length; i++) {
+//       parcelas[i] = novoPMT;
+//     }
+//   }
+
+//   mesAtual++;
+//   exibirParcelas();
+//   atualizarFaltam();
+// }
 
 function resetar() {
-  localStorage.clear();
   parcelas = [];
+  parcelasPagas = [];
+  valoresPagos = [];
   document.getElementById("parcelasList").innerHTML = "";
-  document.getElementById("resultado").innerText = "";
-  document.getElementById("faltam").innerText = "";
-  document.getElementById("log").innerText = "Resetado com sucesso.";
+  document.getElementById("resultado").innerHTML = "";
+  document.getElementById("faltam").innerHTML = "";
+  document.getElementById("log").innerHTML = "";
+  saldo = 0;
 }
 
 // Aplicar máscara
